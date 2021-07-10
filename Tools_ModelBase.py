@@ -24,7 +24,7 @@ def FixMeshFileHeader(modelPath : str, exportPath : str):
     # Fix off file header with seperate first line into two lines, 
     # which contents OFF header and model info respectively.
     content[0] = content[0][3:]
-    with open(modelPath, 'w') as f:
+    with open(exportPath, 'w') as f:
         f.write('OFF\n')
         for c in content : f.write(c)
     return
@@ -117,6 +117,6 @@ if __name__ == '__main__':
     # ModelNet40_DIR = 'D:\\Datasets\\ModelNet40'
     # ModelBase_DIR = 'D:\\Datasets\\ModelNet40_Base'
     # GenModelBaseDir(ModelNet40_DIR, ModelBase_DIR)
-    # GenModelBaseFeature()# ubuntu env (gpu support)
-    TestModelBaseFeature('features_pn2_scale.pkl')
+    GenModelBaseFeature()# ubuntu env (gpu support)
+    # TestModelBaseFeature('features_pn2_scale.pkl')
     
