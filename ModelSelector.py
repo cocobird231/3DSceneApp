@@ -82,37 +82,36 @@ def DelObjectPC(objDict):
 if __name__ == '__main__':
     args = Parser_ModelSelector()
     args = initDevice(args)
-    # OBJECT_DIR = args.objectDIR
-    # MODEL_FEAT_PATH = args.modelFeature
-    
-    # objDict = GetObjectData(OBJECT_DIR)
-    # catDict = ReadDict(MODEL_FEAT_PATH)
-    # objDict = GetObjectTemplate(objDict, catDict, args)
-    # objDict = DelObjectPC(objDict)
-    # SaveDict(os.path.join(args.objectDIR, 'templates.pkl'), objDict)
-    
-    # Test
-    objDict = GetObjectData('objects', 'templates_pn2_scale.pkl')
-    rowCnt = 0
-    showList = []
-    for objName in objDict:
-        pcd = objDict[objName]['obj']
-        pcd = GetUnitModel(pcd).translate([0, rowCnt, 0])
-        if (objDict[objName]['template']):
-            tmp1 = GetModelByName(objDict[objName]['label'], 
-                                  objDict[objName]['template']['rank1'], 
-                                  args.modelBasePath, 'mesh')
-            tmp2 = GetModelByName(objDict[objName]['label'], 
-                                  objDict[objName]['template']['rank2'], 
-                                  args.modelBasePath, 'mesh')
-            tmp3 = GetModelByName(objDict[objName]['label'], 
-                                  objDict[objName]['template']['rank3'], 
-                                  args.modelBasePath, 'mesh')
-            tmp1 = GetUnitModel(tmp1).translate([1, rowCnt, 0])
-            tmp2 = GetUnitModel(tmp2).translate([2, rowCnt, 0])
-            tmp3 = GetUnitModel(tmp3).translate([3, rowCnt, 0])
-            showList.extend([tmp1, tmp2, tmp3])
-        showList.append(pcd)
-        rowCnt += 1
-    o3d.visualization.draw_geometries([*showList], mesh_show_wireframe=True)
+    OBJECT_DIR = args.objectDIR
+    MODEL_FEAT_PATH = args.modelFeature
+    if (not args.test):
+        objDict = GetObjectData(OBJECT_DIR)
+        catDict = ReadDict(MODEL_FEAT_PATH)
+        objDict = GetObjectTemplate(objDict, catDict, args)
+        objDict = DelObjectPC(objDict)
+        SaveDict(os.path.join(args.objectDIR, 'templates.pkl'), objDict)
+    else:
+        objDict = GetObjectData(OBJECT_DIR, 'templates_pn2_scale.pkl')
+        rowCnt = 0
+        showList = []
+        for objName in objDict:
+            pcd = objDict[objName]['obj']
+            pcd = GetUnitModel(pcd).translate([0, rowCnt, 0])
+            if (objDict[objName]['template']):
+                tmp1 = GetModelByName(objDict[objName]['label'], 
+                                      objDict[objName]['template']['rank1'], 
+                                      args.modelBasePath, 'mesh')
+                tmp2 = GetModelByName(objDict[objName]['label'], 
+                                      objDict[objName]['template']['rank2'], 
+                                      args.modelBasePath, 'mesh')
+                tmp3 = GetModelByName(objDict[objName]['label'], 
+                                      objDict[objName]['template']['rank3'], 
+                                      args.modelBasePath, 'mesh')
+                tmp1 = GetUnitModel(tmp1).translate([1, rowCnt, 0])
+                tmp2 = GetUnitModel(tmp2).translate([2, rowCnt, 0])
+                tmp3 = GetUnitModel(tmp3).translate([3, rowCnt, 0])
+                showList.extend([tmp1, tmp2, tmp3])
+            showList.append(pcd)
+            rowCnt += 1
+        o3d.visualization.draw_geometries([*showList], mesh_show_wireframe=True)
     

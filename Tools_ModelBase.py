@@ -117,6 +117,6 @@ if __name__ == '__main__':
     # ModelNet40_DIR = 'D:\\Datasets\\ModelNet40'
     # ModelBase_DIR = 'D:\\Datasets\\ModelNet40_Base'
     # GenModelBaseDir(ModelNet40_DIR, ModelBase_DIR)
-    GenModelBaseFeature()# ubuntu env (gpu support)
-    # TestModelBaseFeature('features_pn2_scale.pkl')
+    # GenModelBaseFeature()# ubuntu env (gpu support)
+    TestModelBaseFeature('features/features_pn2_scale.pkl')
     

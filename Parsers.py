@@ -40,6 +40,8 @@ def Parser_ModelSelector():
                         default='D:/Datasets/ModelNet40_Base', help='ModelBase directory path')
     parser.add_argument('-m', '--modelPath',        required=False, type=str, metavar='PATH', 
                         default='/home/wei/Desktop/pointnet2Comp2_best.pth', help='Pre-trained model path for ModelSelector')
+    parser.add_argument('--test', action='store_true', 
+                        default=False, help='Run test mode')
     # Device settings
     parser.add_argument('--cuda', action='store_true', 
                         default=False, help='Training via cuda device, ignore while cuda device not found')
