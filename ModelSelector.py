@@ -10,7 +10,6 @@ import os
 import copy as cp
 import numpy as np
 import open3d as o3d
-import pickle as pkl
 from operator import itemgetter
 
 import torch
@@ -29,7 +28,6 @@ def GetObjectData(FILE_DIR : str = 'objects', dictName = 'objects.pkl', ext = '.
 
 def GetObjectTemplate(objDict, catDict, args):
     from Module_PointNetSeries import PointNet2Comp2
-    args = initDevice(args)
     net = PointNet2Comp2(0, 40, 'cls')
     net.to(args.device)
     net.load_state_dict(torch.load(args.modelPath, map_location=args.device))
@@ -42,12 +40,7 @@ def GetObjectTemplate(objDict, catDict, args):
             continue
         
         pcd = objDict[objName]['obj']
-        
-        maxBound = pcd.get_max_bound()
-        minBound = pcd.get_min_bound()
-        length = np.linalg.norm(maxBound - minBound, 2)
-        pcd = pcd.scale(1 / length, center = pcd.get_center())
-        pcd = pcd.translate(-pcd.get_center())
+        pcd = GetUnitModel(pcd)
         
         pts = np.asarray(cp.deepcopy(pcd.points)).astype('float32')
         pts = torch.tensor(pts).view(1, -1, 3)
@@ -88,38 +81,36 @@ def DelObjectPC(objDict):
 
 if __name__ == '__main__':
     args = Parser_ModelSelector()
+    args = initDevice(args)
+    OBJECT_DIR = args.objectDIR
+    MODEL_FEAT_PATH = args.modelFeature
     
-    # OBJECT_DIR = args.objectDIR
-    # MODEL_FEAT_PATH = args.modelFeature
-    
-    # objDict = GetObjectData(OBJECT_DIR)
-    # catDict = ReadDict(MODEL_FEAT_PATH)
-    # objDict = GetObjectTemplate(objDict, catDict, args)
-    # objDict = DelObjectPC(objDict)
-    # SaveDict(os.path.join(args.objectDIR, 'templates.pkl'), objDict)
+    objDict = GetObjectData(OBJECT_DIR)
+    catDict = ReadDict(MODEL_FEAT_PATH)
+    objDict = GetObjectTemplate(objDict, catDict, args)
+    objDict = DelObjectPC(objDict)
+    SaveDict(os.path.join(args.objectDIR, 'templates.pkl'), objDict)
     
     # Test
-    objDict = GetObjectData('objects', 'templates.pkl')
-    # print(objDict)
-    
-    rowCnt = 0
-    showList = []
-    for objName in objDict:
-        pcd = objDict[objName]['obj']
-        tmp1 = GetModelByName(objDict[objName]['label'], 
-                              objDict[objName]['template']['rank1'], 
-                              args.modelBasePath, 'mesh')
-        tmp2 = GetModelByName(objDict[objName]['label'], 
-                              objDict[objName]['template']['rank2'], 
-                              args.modelBasePath, 'mesh')
-        tmp3 = GetModelByName(objDict[objName]['label'], 
-                              objDict[objName]['template']['rank3'], 
-                              args.modelBasePath, 'mesh')
-        pcd = GetUnitModel(pcd)
-        tmp1 = GetUnitModel(tmp1).translate([1, rowCnt, 0])
-        tmp2 = GetUnitModel(tmp2).translate([2, rowCnt, 0])
-        tmp3 = GetUnitModel(tmp3).translate([3, rowCnt, 0])
-        showList.extend([pcd, tmp1, tmp2, tmp3])
-        rowCnt += 1
-    o3d.visualization.draw_geometries([*showList])
+    # objDict = GetObjectData('objects', 'templates.pkl')
+    # rowCnt = 0
+    # showList = []
+    # for objName in objDict:
+    #     pcd = objDict[objName]['obj']
+    #     tmp1 = GetModelByName(objDict[objName]['label'], 
+    #                           objDict[objName]['template']['rank1'], 
+    #                           args.modelBasePath, 'mesh')
+    #     tmp2 = GetModelByName(objDict[objName]['label'], 
+    #                           objDict[objName]['template']['rank2'], 
+    #                           args.modelBasePath, 'mesh')
+    #     tmp3 = GetModelByName(objDict[objName]['label'], 
+    #                           objDict[objName]['template']['rank3'], 
+    #                           args.modelBasePath, 'mesh')
+    #     pcd = GetUnitModel(pcd)
+    #     tmp1 = GetUnitModel(tmp1).translate([1, rowCnt, 0])
+    #     tmp2 = GetUnitModel(tmp2).translate([2, rowCnt, 0])
+    #     tmp3 = GetUnitModel(tmp3).translate([3, rowCnt, 0])
+    #     showList.extend([pcd, tmp1, tmp2, tmp3])
+    #     rowCnt += 1
+    # o3d.visualization.draw_geometries([*showList])
     
