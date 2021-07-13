@@ -12,6 +12,20 @@ import open3d as o3d
 import pickle as pkl
 
 
+class ObjectProp:
+    def __init__(self, objName = None, objOBB = None, label = None, tmpName = None, rigid = None):
+        self.objName = objName
+        self.obb = objOBB# Dict{'center', 'extent', 'R'}
+        self.label = label
+        self.tmpName = tmpName
+        self.rigid = rigid# Dict{'R', 'T'}
+        
+        self.obj = None
+        self.tmp = None
+        self.obj_unit_scale = None
+        self.tmp_unit_scale = None
+
+
 #############################################################
 #               Dictionary File Processing
 #############################################################
@@ -89,11 +103,13 @@ def BatchReadPoindCloud(DIR_PATH, pattern = 'vote_cluster', EXP = '.pcd', uniCol
     return PCDList
 
 
-def GetUnitModel(model, deepCopy = True):
+def GetUnitModel(model, deepCopy = True, retTrans = False):
     if (deepCopy) : model = cp.deepcopy(model)
     maxBound = model.get_max_bound()
     minBound = model.get_min_bound()
     length = np.linalg.norm(maxBound - minBound, 2)
     model.scale(1 / length, center = model.get_center())
-    model.translate(-model.get_center())
+    trans = -model.get_center()
+    model.translate(trans)
+    if (retTrans) : return model, 1 / length, trans# model, scale, translate
     return model

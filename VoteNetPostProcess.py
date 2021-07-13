@@ -14,14 +14,16 @@ import open3d as o3d
 from scipy.spatial.transform import Rotation as R
 
 from Utils import SaveDict
-
+import Parsers
 
 uniSeedColor = [0, 0, 1]
 uniVoteColor = [1, 0, 0]
 uniOBBColor = [1, 0, 1]
 eps = 0.05
 minPts = 30
-combThresh = 0.2
+combThresh = 0.14
+
+floorZ = None
 
 
 ################ Read and Write Data Process ################
@@ -70,6 +72,8 @@ def GetLabel2CategoryTable(TAB_PATH):
             if (i == 0) : continue
             table[int(row[0])] = row[9]
         table[0] = ''
+        table[5] = ''
+        table[17] = ''
     return table
 
 
@@ -78,13 +82,25 @@ def GetLabel2CategoryTable(TAB_PATH):
 
 ################ Show Process ################
 
-def ShowSceneProp(OBJList, src):
-    print('Points:', len(np.asarray(src.points)))
-    print('PC Density:', np.mean(np.asarray(src.compute_nearest_neighbor_distance())))
-    print('Num of Proposals:', len(OBJList))
+def GetSceneProp(OBJList, src, showF = True):
+    scenePropDict = dict()
+    scenePropDict['points'] = len(np.asarray(src.points))
+    scenePropDict['sceneDensity'] = np.mean(np.asarray(src.compute_nearest_neighbor_distance()))
+    scenePropDict['proposals'] = len(OBJList)
+    
     objDensities = 0
     for obj in OBJList : objDensities += np.mean(np.asarray(obj.compute_nearest_neighbor_distance()))
-    print('Object Densities:', objDensities / len(OBJList))
+    scenePropDict['objectDensity'] = objDensities / len(OBJList)
+    scenePropDict['floor'] = floorZ
+    
+    if (showF):
+        print('Points:', scenePropDict['points'])
+        print('PC Density:', scenePropDict['sceneDensity'])
+        print('Num of Proposals:', scenePropDict['proposals'])
+        print('Object Densities:', scenePropDict['objectDensity'])
+        print('floor:', scenePropDict['floor'])
+    
+    return scenePropDict
 
 
 def ShowAllObjects(seedList, voteList, OBBList, OBJList, specIdList = []):
@@ -133,9 +149,9 @@ def GetIdxColorTable(groupIds):
 
 
 def OBBCorrection(OBBList, src):# (OBB with z-axis up)
+    global floorZ
     srcPts = np.asarray(src.points)
     floorZ = np.percentile(srcPts[:, 2], 20)
-    print('floor:', floorZ)
     limitZ = floorZ + 0.1
     newOBBList = []
     for obb in OBBList:
@@ -338,11 +354,11 @@ def RemoveCombineIdsObject(seedList, voteList, OBBList, OBJList, labels, combine
     return seedList, voteList, OBBList, OBJList, labels
 
 
-def GenResultFile(OBBList, OBJList, labels, FILE_DIR : str = 'objects', ext : str = '.pcd'):
+def GenResultFile(src, OBBList, OBJList, labels, FILE_DIR : str = 'objects', ext : str = '.pcd'):
     assert len(OBBList) == len(OBJList) ==len(labels), 'Lists length error'
     if (not os.path.exists(FILE_DIR)) : os.mkdir(FILE_DIR)
     
-    label2Cat = GetLabel2CategoryTable('scannetv2-labels.combined.tsv')
+    label2Cat = GetLabel2CategoryTable('utils/scannetv2-labels.combined.tsv')
     
     outDict = dict()
     for i, pack in enumerate(zip(OBBList, OBJList, labels), 1):
@@ -363,24 +379,34 @@ def GenResultFile(OBBList, OBJList, labels, FILE_DIR : str = 'objects', ext : st
         outDict[objName] = objDict
     
     SaveDict(os.path.join(FILE_DIR, 'objects.pkl'), outDict)
+    
+    sourceDict = dict()
+    sourceDict['VoteNetDIR'] = Parsers.VOTE_PATH
+    sourceDict['sceneDIR'] = Parsers.SCENE_PATH
+    scenePropDict = GetSceneProp(OBJList, src, True)
+    
+    sceneDict = dict()
+    sceneDict['source'] = sourceDict
+    sceneDict['prop'] = scenePropDict
+    SaveDict(os.path.join(FILE_DIR, 'scene.pkl'), sceneDict)
 
 
 if __name__ == '__main__':
-    DIR_PATH = 'D:\\DIR\\OneDrive - ntut.edu.tw\\votenet_result\\0706\\scannet_room_office2_Aligned_results'
-    SRC_PATH = 'D:\\ShareDIR\\Replica\\room_office2_Aligned.ply'
-    src = o3d.io.read_point_cloud(SRC_PATH)
+
+    src = o3d.io.read_point_cloud(Parsers.SCENE_PATH)
     
-    OBBList, votePCDList, seedPCDList, labels = GetDataFromCSV(DIR_PATH)
+    OBBList, votePCDList, seedPCDList, labels = GetDataFromCSV(Parsers.VOTE_PATH)
     OBBList = OBBCorrection(OBBList, src)
     OBJList, OBBList = GetObjectPCD(seedPCDList, OBBList, src, dbscan=True, refineObj=True, refineOBB=False)
     
     # ShowSceneProp(OBJList, src)
     ShowAllObjects(seedPCDList, votePCDList, OBBList, OBJList, specIdList=[])
     
-    combineIdsList = [[15, 19, 20], [1, 9, 21, 22]]# ID respected to original detection
+    combineIdsList = Parsers.COMB_LIST# ID respected to original detection
     removeIds = []
     for combineIds in combineIdsList:
         combineIds_th = ObjectIntersectionRate(OBJList, specIdList=combineIds, retType='id')
+        ObjectIntersectionRate(OBJList, specIdList=combineIds, retType='rate')
         seedPCDList, votePCDList, OBBList, OBJList, labels = ObjectCombination(seedPCDList, votePCDList, OBBList, OBJList, labels, combineIds_th, newList='append')
         removeIds.extend(combineIds_th)
     seedPCDList, votePCDList, OBBList, OBJList, labels = RemoveCombineIdsObject(seedPCDList, votePCDList, OBBList, OBJList, labels, combineIds=removeIds)
@@ -408,4 +434,4 @@ if __name__ == '__main__':
     
     visualizer.run()
     visualizer.destroy_window()
-    GenResultFile(OBBList, OBJList, labels)
+    GenResultFile(src, OBBList, OBJList, labels, Parsers.OBJ_DIR)
