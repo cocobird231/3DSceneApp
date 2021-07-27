@@ -20,8 +20,8 @@ from Parsers import Parser_PCR, initDevice
 from Utils import SaveDict, ReadDict, GetModelByName, GetUnitModel
 
 
-def ICP(pc_from, pc_to, initT, deepCopy = True):
-    ICP_TRANSFORM = ICPIter(cp.deepcopy(pc_from), cp.deepcopy(pc_to), initT)
+def ICP(pc_from, pc_to, initT, deepCopy = True, iterSize = 50, iterStep = 0.2):
+    ICP_TRANSFORM = ICPIter(cp.deepcopy(pc_from), cp.deepcopy(pc_to), initT, iterSize, iterStep)
     ICP_TRANSFORM = ICP_TRANSFORM.transformation
     return ICP_TRANSFORM
 
@@ -37,13 +37,13 @@ def ICPIter(templatePC, targetPC, initTransform, iterSize = 50, iterStep = 0.2):
 def GetTemplateData(TMP_DIR, dictName, BASE_DIR, tmpType = 'pcd', normalizedObj = True, normalizedTmp = False):
     objDict = ReadDict(os.path.join(TMP_DIR, dictName))
     for objName in objDict:
-        if (not objDict[objName]['template']) : continue
         pcd = o3d.io.read_point_cloud(os.path.join(TMP_DIR, objName + '.pcd'))
         if (normalizedObj):
             objDict[objName]['obj'], objDict[objName]['obj_s'], objDict[objName]['obj_t'] = GetUnitModel(pcd, True, True)
         else:
             objDict[objName]['obj'] = pcd
         
+        if (not objDict[objName]['template']) : continue
         tmp = GetModelByName(modelCat=      objDict[objName]['label'], 
                              modelName=     objDict[objName]['template']['rank1'], 
                              ModelBase_DIR= BASE_DIR, 
@@ -145,29 +145,6 @@ def GetRigidTransform(objDict, method = 'dcp_icp', args = None):
     return objDict
 
 
-def ShowAllTemplates(objDict, modelBasePath):
-    rowCnt = 0
-    showList = []
-    for objName in objDict:
-        pcd = objDict[objName]['obj']
-        pcd = cp.deepcopy(pcd).translate([0, rowCnt, 0])
-        if (objDict[objName]['template']):
-            transMat = objDict[objName]['transform']['T']
-            tmp = cp.deepcopy(objDict[objName]['tmp']).transform(transMat)
-            
-            tmpMesh = GetModelByName(objDict[objName]['label'], 
-                                     objDict[objName]['template']['rank1'], 
-                                     modelBasePath, 'mesh')
-            tmpMesh = GetUnitModel(tmpMesh).transform(transMat)
-            
-            tmp = tmp.translate([1, rowCnt, 0])
-            tmpMesh = tmpMesh.translate([2, rowCnt, 0])
-            showList.extend([tmp, tmpMesh])
-        showList.append(pcd)
-        rowCnt += 1
-    o3d.visualization.draw_geometries([*showList], mesh_show_wireframe=True)
-
-
 def GetTemplateTransform(objDict, args = None):
     for objName in objDict:
         if (not objDict[objName]['template']) : continue
@@ -193,7 +170,7 @@ def GetTemplateTransform(objDict, args = None):
         transDict = dict()
         transDict['pcd'] = transDict_pcd
         transDict['mesh'] = transDict_mesh
-        
+        transDict['unit'] = TransMatRig
         objDict[objName]['transform'] = transDict
         
         
@@ -202,7 +179,6 @@ def GetTemplateTransform(objDict, args = None):
 
 def DelObjectPC(objDict):
     for objName in objDict:
-        if (not objDict[objName]['template']) : continue
         objDict[objName].pop('obj', None)
         objDict[objName].pop('obj_s', None)
         objDict[objName].pop('obj_t', None)
@@ -213,6 +189,65 @@ def DelObjectPC(objDict):
     return objDict
 
 
+def ShowTemplate(objDict, modelBasePath, specIdList = []):
+    rowCnt = 0
+    objCnt = 0
+    showList = []
+    for objName in objDict:
+        if (specIdList and (objCnt not in specIdList)):
+            objCnt += 1
+            continue
+        pcd = GetUnitModel(objDict[objName]['obj'], True)
+        pcd.translate([0, rowCnt, 0])
+        
+        if (objDict[objName]['template']):
+            transMat = objDict[objName]['transform']['unit']
+            
+            tmp = GetModelByName(objDict[objName]['label'], 
+                                 objDict[objName]['template']['rank1'], 
+                                 modelBasePath, 'pcd').transform(transMat)
+            
+            tmpMesh = GetModelByName(objDict[objName]['label'], 
+                                     objDict[objName]['template']['rank1'], 
+                                     modelBasePath, 'mesh')
+            tmpMesh = GetUnitModel(tmpMesh, True).transform(transMat)
+            
+            tmp.translate([1, rowCnt, 0])
+            tmpMesh.translate([2, rowCnt, 0])
+            showList.extend([tmp, tmpMesh])
+        showList.append(pcd)
+        rowCnt += 1
+        objCnt += 1
+    o3d.visualization.draw_geometries([*showList], mesh_show_wireframe=True)
+
+
+def ShowAllTemplates(objDict, modelBasePath):
+    rowCnt = 0
+    showList = []
+    for objName in objDict:
+        pcd = GetUnitModel(objDict[objName]['obj'], True)
+        pcd.translate([0, rowCnt, 0])
+        
+        if (objDict[objName]['template']):
+            transMat = objDict[objName]['transform']['unit']
+            
+            tmp = GetModelByName(objDict[objName]['label'], 
+                                 objDict[objName]['template']['rank1'], 
+                                 modelBasePath, 'pcd').transform(transMat)
+            
+            tmpMesh = GetModelByName(objDict[objName]['label'], 
+                                     objDict[objName]['template']['rank1'], 
+                                     modelBasePath, 'mesh')
+            tmpMesh = GetUnitModel(tmpMesh, True).transform(transMat)
+            
+            tmp.translate([1, rowCnt, 0])
+            tmpMesh.translate([2, rowCnt, 0])
+            showList.extend([tmp, tmpMesh])
+        showList.append(pcd)
+        rowCnt += 1
+    o3d.visualization.draw_geometries([*showList], mesh_show_wireframe=True)
+
+
 if __name__ == '__main__':
     args = Parser_PCR()
     args = initDevice(args)
@@ -221,14 +256,19 @@ if __name__ == '__main__':
     BASE_DIR = args.modelBasePath
     if (not args.test):
         objDict = GetTemplateData(TMP_DIR, TMP_NAME, BASE_DIR, 'pcd', True, False)# All model normalized
-        objDict = GetRigidTransform(objDict, 'icp_4', args)
-        # ShowAllTemplates(objDict, args.modelBasePath)
+        import time
+        t1 = time.clock()
+        objDict = GetRigidTransform(objDict, args.method, args)
+        print(time.clock() - t1)
         objDict = GetTemplateTransform(objDict, args)
         DelObjectPC(objDict)
         SaveDict(os.path.join(TMP_DIR, 'transforms.pkl'), objDict)
     else:
         TRANS_NAME = args.transform
         objDict = GetTemplateData(TMP_DIR, TRANS_NAME, BASE_DIR, 'mesh', False, False)
+        
+        ShowAllTemplates(objDict, BASE_DIR)
+        # ShowTemplate(objDict, BASE_DIR, [0, 4, 15, 17])
         
         visualizer = o3d.visualization.Visualizer()
         visualizer.create_window(width=1920, height=1080)

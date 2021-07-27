@@ -15,6 +15,7 @@ from scipy.spatial.transform import Rotation as R
 
 from Utils import SaveDict
 import Parsers
+import Labels
 
 uniSeedColor = [0, 0, 1]
 uniVoteColor = [1, 0, 0]
@@ -25,10 +26,15 @@ combThresh = 0.14
 
 floorZ = None
 
+labelType = None
 
 ################ Read and Write Data Process ################
 
 def GetDataFromCSV(DIR_PATH, OBBName = 'OBB.csv', VOTE_DIR = 'votes', SEED_DIR = 'seeds'):
+    global labelType
+    if ('sunrgbd' in DIR_PATH) : labelType = 'sunrgbd'
+    if ('scannet' in DIR_PATH) : labelType = 'scannet'
+    
     obbParams = []
     votePCDPathList = []
     seedPCDPathList = []
@@ -64,16 +70,12 @@ def GetDataFromCSV(DIR_PATH, OBBName = 'OBB.csv', VOTE_DIR = 'votes', SEED_DIR =
     return obbs, votePCDList, seedPCDList, labels
     
 
-def GetLabel2CategoryTable(TAB_PATH):
+def GetLabel2CategoryTable():
     table = dict()
-    with open(TAB_PATH, 'r', encoding = 'utf-8') as fr:
-        csvReader = csv.reader(fr, delimiter='\t')
-        for i, row in enumerate(csvReader):
-            if (i == 0) : continue
-            table[int(row[0])] = row[9]
-        table[0] = ''
-        table[5] = ''
-        table[17] = ''
+    if (labelType == 'scannet'):
+        for _id in Labels.scannet : table[_id] = Labels.nyu2ModelNet40[Labels.scannet[_id]]
+    elif (labelType == 'sunrgbd'):
+        table = Labels.sunrgbd
     return table
 
 
@@ -358,7 +360,7 @@ def GenResultFile(src, OBBList, OBJList, labels, FILE_DIR : str = 'objects', ext
     assert len(OBBList) == len(OBJList) ==len(labels), 'Lists length error'
     if (not os.path.exists(FILE_DIR)) : os.mkdir(FILE_DIR)
     
-    label2Cat = GetLabel2CategoryTable('utils/scannetv2-labels.combined.tsv')
+    label2Cat = GetLabel2CategoryTable()
     
     outDict = dict()
     for i, pack in enumerate(zip(OBBList, OBJList, labels), 1):
@@ -371,7 +373,7 @@ def GenResultFile(src, OBBList, OBJList, labels, FILE_DIR : str = 'objects', ext
         obbDict = dict()
         obbDict['center'] = cp.deepcopy(obb.center)
         obbDict['extent'] = cp.deepcopy(obb.extent)
-        obbDict['R'] = np.eye(3)
+        obbDict['R'] = cp.deepcopy(obb.R)
         
         objDict['obb'] = obbDict
         objDict['label'] = label2Cat[label]
@@ -427,11 +429,11 @@ if __name__ == '__main__':
     for obb in OBBList : visualizer.add_geometry(obb)
     
     view_ctl = visualizer.get_view_control()
-    view_ctl.set_front((1, 2, 2))
-    view_ctl.set_up((0, 0, 1))
+    view_ctl.set_front((0, 0, 1))
+    view_ctl.set_up((0, 1, 0))
     view_ctl.set_lookat(objCen)
-    view_ctl.set_zoom(0.6)
+    view_ctl.set_zoom(0.5)
     
     visualizer.run()
     visualizer.destroy_window()
-    GenResultFile(src, OBBList, OBJList, labels, Parsers.OBJ_DIR)
+    if (not Parsers.TEST_FLAG) : GenResultFile(src, OBBList, OBJList, labels, Parsers.OBJ_DIR)

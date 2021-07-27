@@ -12,17 +12,24 @@ import torch
 # ModelBase
 MODEL_BASE_DIR = 'D:/Datasets/ModelNet40_Base'
 MODEL_FEAT_PATH = 'features/features_g.pkl'
+
 # VoteNetPoseProcess
-VOTE_PATH = 'D:\\DIR\\OneDrive - ntut.edu.tw\\votenet_result\\0706\\scannet_room_office2_Aligned_results'
-SCENE_PATH = 'D:\\ShareDIR\\Replica\\room_office2_Aligned.ply'
-OBJ_DIR = 'objects_room_office2_Aligned'
-COMB_LIST = [[15, 19, 20], [1, 9, 21, 22]]
+VOTE_PATH = 'D:\\DIR\\OneDrive - ntut.edu.tw\\votenet_result\\0727\\sunrgbd_room_office1_Aligned_view_results'
+SCENE_PATH = 'D:\\ShareDIR\\Replica\\room_office1_Aligned_view.ply'
+OBJ_DIR = 'objects_room_office1_Aligned_view'
+COMB_LIST = [[5, 10], [7, 8]]
+
 # ModelSelector
-TMP_NAME = 'templates_g.pkl'
 MS_MODEL_PATH = 'models/ModelSelector_g.pth'
+#-- test --
+TMP_NAME = 'templates_pn2_scale.pkl'
+
 # PCR
+PCR_METHOD = 'icp_4'
 DCP_MODEL_PATH = 'models/DCP_PN_V_E1000_D2.t7'
-TRANS_NAME = 'transforms_g.pkl'
+#-- test --
+TRANS_NAME = 'transforms_pn2_scale.pkl'
+
 TEST_FLAG = True
 
 
@@ -84,6 +91,8 @@ def Parser_PCR():
                         default=MODEL_BASE_DIR, help='ModelBase directory path')
     parser.add_argument('-m', '--modelPath',    required=False, type=str, metavar='PATH', 
                         default=DCP_MODEL_PATH, help='Pre-trained model path for DCP')
+    parser.add_argument('-p', '--method',    required=False, type=str, metavar='PATH', 
+                        default=PCR_METHOD, help='PCR method (dcp_icp or icp_4)')
     # Test options
     parser.add_argument('--test', action='store_true', 
                         default=TEST_FLAG, help='Run test mode')

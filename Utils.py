@@ -12,20 +12,6 @@ import open3d as o3d
 import pickle as pkl
 
 
-class ObjectProp:
-    def __init__(self, objName = None, objOBB = None, label = None, tmpName = None, rigid = None):
-        self.objName = objName
-        self.obb = objOBB# Dict{'center', 'extent', 'R'}
-        self.label = label
-        self.tmpName = tmpName
-        self.rigid = rigid# Dict{'R', 'T'}
-        
-        self.obj = None
-        self.tmp = None
-        self.obj_unit_scale = None
-        self.tmp_unit_scale = None
-
-
 #############################################################
 #               Dictionary File Processing
 #############################################################
@@ -38,6 +24,14 @@ def SaveDict(FILE_NAME, obj):
 def ReadDict(FILE_NAME):
     with open(FILE_NAME, 'rb') as f:
         return pkl.load(f)
+
+
+def GetObjectData(FILE_DIR : str = 'objects', dictName = 'objects.pkl', ext = '.pcd'):
+    objectsDict = ReadDict(os.path.join(FILE_DIR, dictName))
+    for objName in objectsDict:
+        pcd = o3d.io.read_point_cloud(os.path.join(FILE_DIR, objName + ext))
+        objectsDict[objName]['obj'] = pcd
+    return objectsDict
 
 
 #############################################################
@@ -65,7 +59,6 @@ def WalkModelNet40CatDIR(DIR_PATH : str):
             catList.append(catdir)
         break
     return catList
-
 
 
 def GetModelByName(modelCat : str, modelName : str, ModelBase_DIR : str, retType : str = 'mesh'):
@@ -103,6 +96,99 @@ def BatchReadPoindCloud(DIR_PATH, pattern = 'vote_cluster', EXP = '.pcd', uniCol
     return PCDList
 
 
+#############################################################
+#                   Visualization Implementation
+#############################################################
+
+def DrawAxis(length = 10, localCenter = None):
+    o = [0, 0, 0] if (not localCenter) else localCenter
+    points = [o, [o[0] + length, o[1], o[2]], [o[0], o[1] + length, o[2]], [o[0], o[1], o[2] + length]]
+    lines = [[0, 1], [0, 2], [0, 3]]# x, y, z
+    colors = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]# r, g, b
+    line_set = o3d.geometry.LineSet()
+    line_set.points = o3d.utility.Vector3dVector(points)
+    line_set.lines = o3d.utility.Vector2iVector(lines)
+    line_set.colors = o3d.utility.Vector3dVector(colors)
+    return line_set
+
+
+def DrawBox(center, extent, rotMat = np.eye(3), color = None, axis = False, axis_length = 0.5):
+    color = [0, 0, 0] if (not color) else color
+    obb = o3d.geometry.OrientedBoundingBox(center, rotMat, extent)
+    obb.color = color
+    if (not axis) : return obb
+    
+    obb = o3d.geometry.LineSet.create_from_oriented_bounding_box(obb)
+    obb_points = np.asarray(cp.deepcopy(obb.points))
+    obb_colors = np.asarray(cp.deepcopy(obb.colors))
+    obb_lines = np.asarray(cp.deepcopy(obb.lines))
+    
+    print(obb_points.shape, obb_colors, obb_lines)
+    
+    axis = DrawAxis(axis_length, center)
+    axis_points = np.asarray(cp.deepcopy(axis.points))
+    axis_colors = np.asarray(cp.deepcopy(axis.colors))
+    axis_lines = np.asarray(cp.deepcopy(axis.lines)) + obb_points.shape[0]
+    
+    print(axis_points.shape, axis_colors, axis_lines)
+    
+    obb.points = o3d.utility.Vector3dVector(np.concatenate((obb_points, axis_points), axis=0))
+    obb.colors = o3d.utility.Vector3dVector(np.concatenate((obb_colors, axis_colors), axis=0))
+    obb.lines = o3d.utility.Vector2iVector(np.concatenate((obb_lines, axis_lines), axis=0))
+    
+    print(obb)
+    
+    
+    return obb
+
+
+#https://github.com/intel-isl/Open3D/issues/2#issuecomment-610683341
+def text_3d(text, pos, direction=None, degree=0.0, density=1, font='utils/times.ttf', font_size=16):
+    """
+    Generate a 3D text point cloud used for visualization.
+    :param text: content of the text
+    :param pos: 3D xyz position of the text upper left corner
+    :param direction: 3D normalized direction of where the text faces
+    :param degree: in plane rotation of text
+    :param density: https://github.com/intel-isl/Open3D/issues/2#issuecomment-620387385
+    :param font: Name of the font - change it according to your system
+    :param font_size: size of the font
+    :return: o3d.geoemtry.PointCloud object
+    """
+    if direction is None:
+        direction = (0., 0., 1.)
+
+    from PIL import Image, ImageFont, ImageDraw
+    from pyquaternion import Quaternion
+
+    font_obj = ImageFont.truetype(font, font_size * density)
+    font_dim = font_obj.getsize(text)
+
+    img = Image.new('RGB', font_dim, color=(255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    draw.text((0, 0), text, font=font_obj, fill=(0, 0, 0))
+    img = np.asarray(img)
+    img_mask = img[:, :, 0] < 128
+    indices = np.indices([*img.shape[0:2], 1])[:, img_mask, 0].reshape(3, -1).T
+
+    pcd = o3d.geometry.PointCloud()
+    pcd.colors = o3d.utility.Vector3dVector(img[img_mask, :].astype(float) / 255.0)
+    pcd.points = o3d.utility.Vector3dVector(indices / 100.0 / density)
+
+    raxis = np.cross([0.0, 0.0, 1.0], direction)
+    if np.linalg.norm(raxis) < 1e-6:
+        raxis = (0.0, 0.0, 1.0)
+    trans = (Quaternion(axis=raxis, radians=np.arccos(direction[2])) *
+             Quaternion(axis=direction, degrees=degree)).transformation_matrix
+    trans[0:3, 3] = np.asarray(pos)
+    pcd.transform(trans)
+    return pcd
+
+
+#############################################################
+#                   Point Cloud Implementation
+#############################################################
+
 def GetUnitModel(model, deepCopy = True, retTrans = False):
     if (deepCopy) : model = cp.deepcopy(model)
     maxBound = model.get_max_bound()
@@ -113,3 +199,27 @@ def GetUnitModel(model, deepCopy = True, retTrans = False):
     model.translate(trans)
     if (retTrans) : return model, 1 / length, trans# model, scale, translate
     return model
+
+
+def jitter_pointcloud(pointcloud, sigma=0.01, clip=0.05):
+    N, C = pointcloud.shape
+    pointcloud += np.clip(sigma * np.random.randn(N, C), -1 * clip, clip)
+    return pointcloud
+
+
+def scaling_pointCloud(pointcloud, scalingScalar = 0.2):
+    coeff = np.random.uniform(1 - scalingScalar, 1 + scalingScalar)
+    pointcloud = pointcloud * coeff
+    return pointcloud
+
+
+#############################################################
+#                   Rigid Implementation
+#############################################################
+
+def invRigid(transMat):
+    inv_randRigid = cp.deepcopy(transMat)
+    inv_randRigid[:3,:3] = transMat[:3,:3].transpose()
+    inv_randRigid[:3,3] = (-inv_randRigid[:3,:3] @ inv_randRigid[:3,3]).reshape(1, 3)
+    return inv_randRigid
+
