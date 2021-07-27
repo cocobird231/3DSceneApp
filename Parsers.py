@@ -16,8 +16,8 @@ MODEL_FEAT_PATH = 'features/features_g.pkl'
 # VoteNetPoseProcess
 VOTE_PATH = 'D:\\DIR\\OneDrive - ntut.edu.tw\\votenet_result\\0727\\sunrgbd_room_office1_Aligned_view_results'
 SCENE_PATH = 'D:\\ShareDIR\\Replica\\room_office1_Aligned_view.ply'
-OBJ_DIR = 'objects_room_office1_Aligned_view'
-COMB_LIST = [[5, 10], [7, 8]]
+OBJ_DIR = 'objects_room_office1A'
+COMB_LIST = []
 
 # ModelSelector
 MS_MODEL_PATH = 'models/ModelSelector_g.pth'
@@ -25,12 +25,12 @@ MS_MODEL_PATH = 'models/ModelSelector_g.pth'
 TMP_NAME = 'templates_pn2_scale.pkl'
 
 # PCR
-PCR_METHOD = 'icp_4'
+PCR_METHOD = 'dcp_icp'
 DCP_MODEL_PATH = 'models/DCP_PN_V_E1000_D2.t7'
 #-- test --
 TRANS_NAME = 'transforms_pn2_scale.pkl'
 
-TEST_FLAG = True
+TEST_FLAG = False
 
 
 def Parser_ModelBase():
@@ -91,7 +91,7 @@ def Parser_PCR():
                         default=MODEL_BASE_DIR, help='ModelBase directory path')
     parser.add_argument('-m', '--modelPath',    required=False, type=str, metavar='PATH', 
                         default=DCP_MODEL_PATH, help='Pre-trained model path for DCP')
-    parser.add_argument('-p', '--method',    required=False, type=str, metavar='PATH', 
+    parser.add_argument('-p', '--method',    required=False, type=str, metavar='METHOD', 
                         default=PCR_METHOD, help='PCR method (dcp_icp or icp_4)')
     # Test options
     parser.add_argument('--test', action='store_true', 

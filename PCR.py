@@ -62,8 +62,8 @@ def GetRigidTransform(objDict, method = 'dcp_icp', args = None):
 
         
         net = DCP(DCPProp())
+        net.load_state_dict(torch.load(args.modelPath, map_location='cpu'))
         net.to(args.device)
-        net.load_state_dict(torch.load(args.modelPath, map_location=args.device))
         net.eval()
         
         for objName in objDict:
@@ -78,7 +78,7 @@ def GetRigidTransform(objDict, method = 'dcp_icp', args = None):
             objPCD.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=0.2, max_nn=10))
             
             tmp = np.asarray(cp.deepcopy(tmpPCD.points)).astype('float32')
-            obj = np.asarray(cp.deepcopy(objPCD.points)).astype('float32')
+            obj = np.asarray(cp.deepcopy(objPCD.points))[:2048].astype('float32')
             
             tmp = torch.tensor(tmp).view(1, -1, 3)
             obj = torch.tensor(obj).view(1, -1, 3)
