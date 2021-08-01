@@ -59,10 +59,6 @@ def GetTemplateData(TMP_DIR, dictName, BASE_DIR, tmpType = 'pcd', normalizedObj 
 def GetRigidTransform(objDict, method = 'dcp_icp', args = None, net = None):
     assert method == 'dcp_icp' or method == 'icp_4', 'Rigid prediction method error'
     if (method == 'dcp_icp'):
-
-        
-
-        
         for objName in objDict:
             if (not objDict[objName]['template']): 
                 objDict[objName]['transform'] = None
@@ -270,7 +266,7 @@ if __name__ == '__main__':
         
         objDict = GetTemplateTransform(objDict, args)
         DelObjectPC(objDict)
-        SaveDict(os.path.join(TMP_DIR, 'transforms.pkl'), objDict)
+        SaveDict(os.path.join(TMP_DIR, 'transforms_%s.pkl' %args.method), objDict)
     else:
         TRANS_NAME = args.transform
         objDict = GetTemplateData(TMP_DIR, TRANS_NAME, BASE_DIR, 'mesh', False, False)
