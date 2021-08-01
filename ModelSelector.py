@@ -148,6 +148,6 @@ if __name__ == '__main__':
     else:
         objDict = GetObjectData(OBJECT_DIR, args.template)
         ShowAllTemplates(objDict, args.modelBasePath)
-        # ShowTemplate(objDict, args.modelBasePath, [0, 4, 15, 17])
+        ShowTemplate(objDict, args.modelBasePath, [1])
 
     

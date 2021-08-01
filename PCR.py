@@ -56,15 +56,12 @@ def GetTemplateData(TMP_DIR, dictName, BASE_DIR, tmpType = 'pcd', normalizedObj 
     return objDict# Delete obj, obj_s, obj_t and tmp while saving objDict
 
 
-def GetRigidTransform(objDict, method = 'dcp_icp', args = None):
+def GetRigidTransform(objDict, method = 'dcp_icp', args = None, net = None):
     assert method == 'dcp_icp' or method == 'icp_4', 'Rigid prediction method error'
     if (method == 'dcp_icp'):
 
         
-        net = DCP(DCPProp())
-        net.load_state_dict(torch.load(args.modelPath, map_location='cpu'))
-        net.to(args.device)
-        net.eval()
+
         
         for objName in objDict:
             if (not objDict[objName]['template']): 
@@ -256,10 +253,21 @@ if __name__ == '__main__':
     BASE_DIR = args.modelBasePath
     if (not args.test):
         objDict = GetTemplateData(TMP_DIR, TMP_NAME, BASE_DIR, 'pcd', True, False)# All model normalized
+        
+        
+        if (args.method == 'dcp_icp'):
+            net = DCP(DCPProp())
+            net.load_state_dict(torch.load(args.modelPath, map_location='cpu'))
+            net.to(args.device)
+            net.eval()
+        else : net = None
+        
         import time
-        t1 = time.clock()
-        objDict = GetRigidTransform(objDict, args.method, args)
-        print(time.clock() - t1)
+        print('start')
+        t1 = time.time()
+        objDict = GetRigidTransform(objDict, args.method, args, net)
+        print(time.time() - t1)
+        
         objDict = GetTemplateTransform(objDict, args)
         DelObjectPC(objDict)
         SaveDict(os.path.join(TMP_DIR, 'transforms.pkl'), objDict)
@@ -268,7 +276,7 @@ if __name__ == '__main__':
         objDict = GetTemplateData(TMP_DIR, TRANS_NAME, BASE_DIR, 'mesh', False, False)
         
         ShowAllTemplates(objDict, BASE_DIR)
-        # ShowTemplate(objDict, BASE_DIR, [0, 4, 15, 17])
+        ShowTemplate(objDict, BASE_DIR, [1])# 0, 4, 15, 17
         
         visualizer = o3d.visualization.Visualizer()
         visualizer.create_window(width=1920, height=1080)
@@ -276,7 +284,7 @@ if __name__ == '__main__':
         scenePropDict = ReadDict(os.path.join(TMP_DIR, 'scene.pkl'))
         
         pcd = o3d.io.read_point_cloud(scenePropDict['source']['sceneDIR'])
-        # visualizer.add_geometry(pcd)
+        visualizer.add_geometry(pcd)
         
         for objName in objDict:
             if (not objDict[objName]['template']) : continue

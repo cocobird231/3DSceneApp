@@ -406,7 +406,7 @@ if __name__ == '__main__':
     real_nObj = ObjPCRemove(realObjDict, real, 'obj', 0.2)
     
     iterTransMat = PCR.ICP(real_nObj, vmap_nObj, initTransMat, True, 50)
-    real_tmp = cp.deepcopy(real_nObj).transform(initTransMat)
+    real_tmp = cp.deepcopy(real).transform(iterTransMat)
     real_tmp.paint_uniform_color([1, 0, 0])
     
     
@@ -417,45 +417,45 @@ if __name__ == '__main__':
     visualizer = o3d.visualization.Visualizer()
     visualizer.create_window(width=1920, height=1080)
     
-    visualizer.add_geometry(vmap_nObj)
-    visualizer.add_geometry(real_tmp)
-    objCen = vmap.get_center()
+    # visualizer.add_geometry(vmap)
+    # visualizer.add_geometry(real_tmp)
+    # objCen = vmap.get_center()
     
-    # src1 = o3d.io.read_point_cloud(MAP_SCENE_PATH)
-    # src2 = o3d.io.read_point_cloud(REAL_SCENE_PATH)
-    # objCen = src1.get_center()
+    src1 = o3d.io.read_point_cloud(MAP_SCENE_PATH)
+    src2 = o3d.io.read_point_cloud(REAL_SCENE_PATH)
+    objCen = src1.get_center()
     
-    # trans1 = -src1.get_center()
-    # src1.translate(trans1)
-    # visualizer.add_geometry(src1)
-    # for objName in mapObjDict:
-    #     obbPara = mapObjDict[objName]['obb']
-    #     obb = o3d.geometry.OrientedBoundingBox(obbPara['center'], 
-    #                                             obbPara['R'], 
-    #                                             obbPara['extent'])
-    #     obb.color = [1, 0, 1]
-    #     obb.translate(trans1)
-    #     visualizer.add_geometry(obb)
-    #     # text options
-    #     textPos = obb.get_center()
-    #     textPos[2] = obb.get_max_bound()[2] + 0.1
-    #     visualizer.add_geometry(text_3d(objName[-3:], textPos, density=10, font_size=48))
+    trans1 = -src1.get_center()
+    src1.translate(trans1)
+    visualizer.add_geometry(src1)
+    for objName in mapObjDict:
+        obbPara = mapObjDict[objName]['obb']
+        obb = o3d.geometry.OrientedBoundingBox(obbPara['center'], 
+                                                obbPara['R'], 
+                                                obbPara['extent'])
+        obb.color = [1, 0, 1]
+        obb.translate(trans1)
+        visualizer.add_geometry(obb)
+        # text options
+        textPos = obb.get_center()
+        textPos[2] = obb.get_max_bound()[2] + 0.1
+        visualizer.add_geometry(text_3d(objName[-3:], textPos, density=10, font_size=48))
     
-    # trans2 = -src2.get_center() + np.asarray([8, 0, 0])
-    # src2.translate(trans2)
-    # visualizer.add_geometry(src2)
-    # for objName in realObjDict:
-    #     obbPara = realObjDict[objName]['obb']
-    #     obb = o3d.geometry.OrientedBoundingBox(obbPara['center'], 
-    #                                             obbPara['R'], 
-    #                                             obbPara['extent'])
-    #     obb.color = [1, 0, 1]
-    #     obb.translate(trans2)
-    #     visualizer.add_geometry(obb)
-    #     # text options
-    #     textPos = obb.get_center()
-    #     textPos[2] = obb.get_max_bound()[2] + 0.1
-    #     visualizer.add_geometry(text_3d(objName[-3:], textPos, density=10, font_size=48))
+    trans2 = -src2.get_center() + np.asarray([8, 0, 0])
+    src2.translate(trans2)
+    visualizer.add_geometry(src2)
+    for objName in realObjDict:
+        obbPara = realObjDict[objName]['obb']
+        obb = o3d.geometry.OrientedBoundingBox(obbPara['center'], 
+                                                obbPara['R'], 
+                                                obbPara['extent'])
+        obb.color = [1, 0, 1]
+        obb.translate(trans2)
+        visualizer.add_geometry(obb)
+        # text options
+        textPos = obb.get_center()
+        textPos[2] = obb.get_max_bound()[2] + 0.1
+        visualizer.add_geometry(text_3d(objName[-3:], textPos, density=10, font_size=48))
     
     view_ctl = visualizer.get_view_control()
     view_ctl.set_front((0, 0, 1))

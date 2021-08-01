@@ -22,7 +22,7 @@ COMB_LIST = []
 # ModelSelector
 MS_MODEL_PATH = 'models/ModelSelector_g.pth'
 #-- test --
-TMP_NAME = 'templates_pn2_scale.pkl'
+TMP_NAME = 'templates_g.pkl'
 
 # PCR
 PCR_METHOD = 'dcp_icp'
