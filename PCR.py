@@ -272,7 +272,7 @@ if __name__ == '__main__':
         objDict = GetTemplateData(TMP_DIR, TRANS_NAME, BASE_DIR, 'mesh', False, False)
         
         ShowAllTemplates(objDict, BASE_DIR)
-        ShowTemplate(objDict, BASE_DIR, [1])# 0, 4, 15, 17
+        # ShowTemplate(objDict, BASE_DIR, [])# 0, 4, 15, 17
         
         visualizer = o3d.visualization.Visualizer()
         visualizer.create_window(width=1920, height=1080)

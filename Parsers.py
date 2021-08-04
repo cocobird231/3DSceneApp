@@ -14,23 +14,24 @@ MODEL_BASE_DIR = 'D:/Datasets/ModelNet40_Base'
 MODEL_FEAT_PATH = 'features/features_g.pkl'
 
 # VoteNetPoseProcess
-VOTE_PATH = 'D:\\DIR\\OneDrive - ntut.edu.tw\\votenet_result\\0727\\sunrgbd_room_office1_Aligned_view_results'
-SCENE_PATH = 'D:\\ShareDIR\\Replica\\room_office1_Aligned_view.ply'
-OBJ_DIR = 'objects_room_office1A'
-COMB_LIST = []
+VOTE_PATH = 'D:\\DIR\\OneDrive - ntut.edu.tw\\votenet_result\\0706\\scannet_room_office2_Aligned_results'
+SCENE_DIR = 'D:\\ShareDIR\\Replica\\office_4'
+SCENE_PATH = 'D:\\ShareDIR\\Replica\\room_office2_Aligned.ply'
+OBJ_DIR = 'new_objects_room_office2_Aligned'
+COMB_LIST = [[15, 19, 20], [1, 9, 21, 22]]
 
 # ModelSelector
 MS_MODEL_PATH = 'models/ModelSelector_g.pth'
 #-- test --
-TMP_NAME = 'templates_g.pkl'
+TMP_NAME = 'templates_pn2_scale.pkl'
 
 # PCR
 PCR_METHOD = 'dcp_icp'
 DCP_MODEL_PATH = 'models/DCP_PN_V_E1000_D2.t7'
 #-- test --
-TRANS_NAME = 'transforms_pn2_scale.pkl'
+TRANS_NAME = 'transforms_pn2_scale_icp_4.pkl'
 
-TEST_FLAG = False
+TEST_FLAG = True
 
 
 def Parser_ModelBase():
