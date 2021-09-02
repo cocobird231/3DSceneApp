@@ -13,7 +13,7 @@ import numpy as np
 import open3d as o3d
 from scipy.spatial.transform import Rotation as R
 
-from Utils import SaveDict
+from Utils import SaveDict, ReadDict
 import Parsers
 import Labels
 
@@ -174,11 +174,52 @@ def OBBCorrection(OBBList, src):# (OBB with z-axis up)
     return newOBBList
 
 
-def GetObjectPCD_GT(insList, OBBList, src : o3d.geometry.PointCloud):
+def ListFrequentElement(ls):
+    cntDict = dict()
+    for i, e in enumerate(ls):
+        if (not e in cntDict) : cntDict[e] = 0
+        cntDict[e] += 1
+    maxCnt = 0
+    maxIdx = -1
+    for k in cntDict:
+        if (cntDict[k] > maxCnt):
+            maxIdx = k
+            maxCnt = cntDict[k]
+    
+    return (maxIdx, maxCnt)
+
+
+def GetObjectPCD_GT(SCENE_DIR : str, src : o3d.geometry.PointCloud, OBBList = None, OBJList = None, ptInBox = True):
+    semDict = ReadDict(os.path.join(SCENE_DIR, 'sceneLabel_Aligned.pkl'))
+    insList = semDict['instance']
     newObjList = []
-    for obb in OBBList:
-        objIds = obb.get_point_indices_within_bounding_box(src.points)
-        objIds = sorted(objIds)
+    
+    if (OBJList):
+        for obj in OBJList:
+            dist = np.asarray(src.compute_point_cloud_distance(obj))
+            objIds = np.where(dist <= 0.001)[0]
+            insIds = np.asarray(insList)[objIds]
+            maxObjIdx, maxObjCnt = ListFrequentElement(insIds)
+            print(maxObjIdx, maxObjCnt)
+            newObjIds = np.where(np.asarray(insList) == maxObjIdx)[0]
+            if (ptInBox) : newObjIds = list(set(newObjIds) & set(objIds))
+            newObj = src.select_by_index(newObjIds)
+            newObjList.append(newObj)
+        return newObjList, OBBList
+    
+    
+    if (OBBList):
+        for obb in OBBList:
+            objIds = obb.get_point_indices_within_bounding_box(src.points)
+            insIds = np.asarray(insList)[objIds]
+            maxObjIdx, maxObjCnt = ListFrequentElement(insIds)
+            print(maxObjIdx, maxObjCnt)
+            obj = np.where(np.asarray(insList) == maxObjIdx)[0]
+            if (ptInBox) : obj = list(set(obj) & set(objIds))
+            obj = src.select_by_index(obj)
+            newObjList.append(obj)
+            
+    return newObjList, OBBList
 
 
 def GetObjectPCD(seedList, OBBList, src, dbscan = True, refineObj = True, refineOBB = False):
@@ -290,35 +331,6 @@ def ObjectCombination(seedList, voteList, OBBList, OBJList, labels, combineIds =
     assert len(combineIds) > 1, 'No enough combination indices for objects:\n{} < 2'.format(combineIds)
     assert newList == None or newList == 'remove' or newList == 'append', 'newList Error'
     
-    # combSeedList = []
-    # combVoteList = []
-    # combPtsList = []
-    # combColorsList = []
-    
-    # for idx in combineIds:
-    #     combSeedList.append(np.asarray(cp.deepcopy(seedList[idx].points)))
-    #     combVoteList.append(np.asarray(cp.deepcopy(voteList[idx].points)))
-    #     combPtsList.append(np.asarray(cp.deepcopy(OBJList[idx].points)))
-    #     combColorsList.append(np.asarray(cp.deepcopy(OBJList[idx].colors)))
-    
-    # combSeeds = np.concatenate(combSeedList, axis=0)
-    # combVotes = np.concatenate(combVoteList, axis=0)
-    # combPts = np.concatenate(combPtsList, axis=0)
-    # combColors = np.concatenate(combColorsList, axis=0)
-    
-    # newSeeds = o3d.geometry.PointCloud()
-    # newSeeds.points = o3d.utility.Vector3dVector(combSeeds)
-    # newSeeds.paint_uniform_color(uniSeedColor)
-    
-    # newVotes = o3d.geometry.PointCloud()
-    # newVotes.points = o3d.utility.Vector3dVector(combVotes)
-    # newVotes.paint_uniform_color(uniVoteColor)
-    
-    # newObj = o3d.geometry.PointCloud()
-    # newObj.points = o3d.utility.Vector3dVector(combPts)
-    # newObj.colors = o3d.utility.Vector3dVector(combColors)
-    
-    
     newSeeds = o3d.geometry.PointCloud()
     newVotes = o3d.geometry.PointCloud()
     newObj = o3d.geometry.PointCloud()
@@ -409,13 +421,20 @@ def GenResultFile(src, OBBList, OBJList, labels, FILE_DIR : str = 'objects', ext
     SaveDict(os.path.join(FILE_DIR, 'scene.pkl'), sceneDict)
 
 
+GT = False
+GT_refine = True
 if __name__ == '__main__':
 
     src = o3d.io.read_point_cloud(Parsers.SCENE_PATH)
     
     OBBList, votePCDList, seedPCDList, labels = GetDataFromCSV(Parsers.VOTE_PATH, OBBScale=1.2)
     OBBList = OBBCorrection(OBBList, src)
-    OBJList, OBBList = GetObjectPCD(seedPCDList, OBBList, src, dbscan=True, refineObj=True, refineOBB=False)
+    if (GT):
+        OBJList, OBBList = GetObjectPCD_GT(Parsers.SCENE_DIR, src, OBBList, None)
+    else:
+        OBJList, OBBList = GetObjectPCD(seedPCDList, OBBList, src, dbscan=True, refineObj=True, refineOBB=False)
+        if (GT_refine) : OBJList, OBBList = GetObjectPCD_GT(Parsers.SCENE_DIR, src, OBBList, OBJList, False)
+            
     
     # ShowSceneProp(OBJList, src)
     ShowAllObjects(seedPCDList, votePCDList, OBBList, OBJList, specIdList=[])

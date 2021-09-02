@@ -11,7 +11,7 @@ import copy as cp
 import numpy as np
 import open3d as o3d
 from operator import itemgetter
-from Utils import SaveDict, ReadDict, text_3d, GetObjectData
+from Utils import SaveDict, ReadDict, text_3d, GetObjectData, DrawAxis
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation as R
 
@@ -370,6 +370,19 @@ def ObjPCRemove(objDict, scene, removeType = 'obb', extentRange = 0.1):
     return scenePCD
 
 
+def ViewScene(vmap, real):
+    zRotList = [[0, 0, 0], [-90, 180, 0], [0, 90, 0]]
+    offsetList = [[0, 0, 0], [0, -5, 0], [5, 0, 0]]
+    showList = []
+    for deg, off in zip(zRotList, offsetList):
+        rotMat = R.from_euler('xyz', deg, True).as_matrix()
+        vmap_tmp = cp.deepcopy(vmap).rotate(rotMat, [0, 0, 0])
+        real_tmp = cp.deepcopy(real).rotate(rotMat, [0, 0, 0])
+        showList.append(vmap_tmp.translate(off))
+        showList.append(real_tmp.translate(off))
+        o3d.visualization.draw_geometries([vmap_tmp, real_tmp])
+
+
 if __name__ == '__main__':
     MAP_SCENE_PATH = 'D:/ShareDIR/Replica/room_office2_Aligned.ply'
     REAL_SCENE_PATH = 'D:/ShareDIR/Replica/room_office2_Aligned_viewR.ply'
@@ -417,45 +430,45 @@ if __name__ == '__main__':
     visualizer = o3d.visualization.Visualizer()
     visualizer.create_window(width=1920, height=1080)
     
-    # visualizer.add_geometry(vmap)
-    # visualizer.add_geometry(real_tmp)
-    # objCen = vmap.get_center()
+    visualizer.add_geometry(vmap)
+    visualizer.add_geometry(real_tmp)
+    objCen = vmap.get_center()
     
-    src1 = o3d.io.read_point_cloud(MAP_SCENE_PATH)
-    src2 = o3d.io.read_point_cloud(REAL_SCENE_PATH)
-    objCen = src1.get_center()
+    # src1 = o3d.io.read_point_cloud(MAP_SCENE_PATH)
+    # src2 = o3d.io.read_point_cloud(REAL_SCENE_PATH)
+    # objCen = src1.get_center()
     
-    trans1 = -src1.get_center()
-    src1.translate(trans1)
-    visualizer.add_geometry(src1)
-    for objName in mapObjDict:
-        obbPara = mapObjDict[objName]['obb']
-        obb = o3d.geometry.OrientedBoundingBox(obbPara['center'], 
-                                                obbPara['R'], 
-                                                obbPara['extent'])
-        obb.color = [1, 0, 1]
-        obb.translate(trans1)
-        visualizer.add_geometry(obb)
-        # text options
-        textPos = obb.get_center()
-        textPos[2] = obb.get_max_bound()[2] + 0.1
-        visualizer.add_geometry(text_3d(objName[-3:], textPos, density=10, font_size=48))
+    # trans1 = -src1.get_center()
+    # src1.translate(trans1)
+    # visualizer.add_geometry(src1)
+    # for objName in mapObjDict:
+    #     obbPara = mapObjDict[objName]['obb']
+    #     obb = o3d.geometry.OrientedBoundingBox(obbPara['center'], 
+    #                                             obbPara['R'], 
+    #                                             obbPara['extent'])
+    #     obb.color = [1, 0, 1]
+    #     obb.translate(trans1)
+    #     visualizer.add_geometry(obb)
+    #     # text options
+    #     textPos = obb.get_center()
+    #     textPos[2] = obb.get_max_bound()[2] + 0.1
+    #     visualizer.add_geometry(text_3d(objName[-3:], textPos, density=10, font_size=48, degree=-90))
     
-    trans2 = -src2.get_center() + np.asarray([8, 0, 0])
-    src2.translate(trans2)
-    visualizer.add_geometry(src2)
-    for objName in realObjDict:
-        obbPara = realObjDict[objName]['obb']
-        obb = o3d.geometry.OrientedBoundingBox(obbPara['center'], 
-                                                obbPara['R'], 
-                                                obbPara['extent'])
-        obb.color = [1, 0, 1]
-        obb.translate(trans2)
-        visualizer.add_geometry(obb)
-        # text options
-        textPos = obb.get_center()
-        textPos[2] = obb.get_max_bound()[2] + 0.1
-        visualizer.add_geometry(text_3d(objName[-3:], textPos, density=10, font_size=48))
+    # trans2 = -src2.get_center() + np.asarray([8, 0, 0])
+    # src2.translate(trans2)
+    # visualizer.add_geometry(src2)
+    # for objName in realObjDict:
+    #     obbPara = realObjDict[objName]['obb']
+    #     obb = o3d.geometry.OrientedBoundingBox(obbPara['center'], 
+    #                                             obbPara['R'], 
+    #                                             obbPara['extent'])
+    #     obb.color = [1, 0, 1]
+    #     obb.translate(trans2)
+    #     visualizer.add_geometry(obb)
+    #     # text options
+    #     textPos = obb.get_center()
+    #     textPos[2] = obb.get_max_bound()[2] + 0.1
+    #     visualizer.add_geometry(text_3d(objName[-3:], textPos, density=10, font_size=48, degree=-90))
     
     view_ctl = visualizer.get_view_control()
     view_ctl.set_front((0, 0, 1))
@@ -468,3 +481,13 @@ if __name__ == '__main__':
     
     visualizer.run()
     visualizer.destroy_window()
+    
+    # Cut walls
+    minBound = vmap.get_min_bound()
+    maxBound = vmap.get_max_bound()
+    minBound += [0.2, 0.2, 0]
+    maxBound += [-0.2, -0.2, 0]
+    bbox = o3d.geometry.AxisAlignedBoundingBox(minBound, maxBound)
+    vmap_noWall = vmap.crop(bbox)
+    real_tmp_noWall = real_tmp.crop(bbox)
+    ViewScene(vmap_noWall, real_tmp_noWall)

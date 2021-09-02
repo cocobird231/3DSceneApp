@@ -14,11 +14,11 @@ MODEL_BASE_DIR = 'D:/Datasets/ModelNet40_Base'
 MODEL_FEAT_PATH = 'features/features_g.pkl'
 
 # VoteNetPoseProcess
-VOTE_PATH = 'D:\\DIR\\OneDrive - ntut.edu.tw\\votenet_result\\0706\\scannet_room_office2_Aligned_results'
-SCENE_DIR = 'D:\\ShareDIR\\Replica\\office_4'
-SCENE_PATH = 'D:\\ShareDIR\\Replica\\room_office2_Aligned.ply'
-OBJ_DIR = 'new_objects_room_office2_Aligned'
-COMB_LIST = [[15, 19, 20], [1, 9, 21, 22]]
+VOTE_PATH = 'office_4/scannet_mesh_Aligned_results'
+SCENE_DIR = 'office_4'
+SCENE_PATH = 'office_4/mesh_Aligned.ply'
+OBJ_DIR = 'office_4/obj'
+COMB_LIST = [[2, 3, 8, 11, 14, 17, 22]]
 
 # ModelSelector
 MS_MODEL_PATH = 'models/ModelSelector_g.pth'

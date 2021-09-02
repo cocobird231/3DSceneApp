@@ -97,29 +97,38 @@ def CropScene(pcd : o3d.geometry.PointCloud, semList, insList, minBoundVar, maxB
     return newPCD, newSemList, newInsList
 
 
-testF = True
+createScenePKL = False
+createAlignedSceneFile = True
 if __name__ == '__main__':
-    SCENE_DIR = 'D:\\OneDrive - ntut.edu.tw\\office_4'
-    if (not testF):
-        GetSceneSemanticInfo(SCENE_DIR)
-    else:
-        readDict = ReadDict(os.path.join(SCENE_DIR, 'sceneLabel.pkl'))
-        semPts = readDict['semantic']
-        insPts = readDict['instance']
-        classNameToIDDict = readDict['class_name_to_id']
+    SCENE_DIR = 'office_4'
+    if (createScenePKL) : GetSceneSemanticInfo(SCENE_DIR)
+    
+    readDict = ReadDict(os.path.join(SCENE_DIR, 'sceneLabel.pkl'))
+    semPts = readDict['semantic']
+    insPts = readDict['instance']
+    classNameToIDDict = readDict['class_name_to_id']
+    
+    partPtsList = np.where(np.asarray(semPts) == classNameToIDDict['chair'])[0]
+    
+    pcd = o3d.io.read_point_cloud(os.path.join(SCENE_DIR, 'mesh.ply'))
+    part = pcd.select_by_index(partPtsList)
+    o3d.visualization.draw_geometries([part])
+    
+    rotAng = [0, 0, -6]
+    pcd = SceneAlignment(pcd, rotAng, True)
+    minBoundVar = [0, 0, 0]
+    maxBoundVar = [0, 0, -0.2]
+    pcd, semPts, insPts = CropScene(pcd, semPts, insPts, minBoundVar, maxBoundVar, True)
+    
+    partPtsList = np.where(np.asarray(semPts) == classNameToIDDict['chair'])[0]
+    part = pcd.select_by_index(partPtsList)
+    o3d.visualization.draw_geometries([part])
+    
+    if (createAlignedSceneFile):
+        newOutDict = readDict
+        newOutDict['semantic'] = semPts
+        newOutDict['instance'] = insPts
+        SaveDict(os.path.join(SCENE_DIR, 'sceneLabel_Aligned.pkl'), newOutDict)
+        o3d.io.write_point_cloud(os.path.join(SCENE_DIR, 'mesh_Aligned.ply'), pcd)
         
-        partPtsList = np.where(np.asarray(semPts) == classNameToIDDict['chair'])[0]
-        
-        pcd = o3d.io.read_point_cloud(os.path.join(SCENE_DIR, 'mesh.ply'))
-        part = pcd.select_by_index(partPtsList)
-        o3d.visualization.draw_geometries([part])
-        
-        pcd = SceneAlignment(pcd, [0, 0, 30])
-        minBoundVar = [0, 0, 0]
-        maxBoundVar = [0, 0, -0.1]
-        pcd, semPts, insPts = CropScene(pcd, semPts, insPts, minBoundVar, maxBoundVar)
-        
-        partPtsList = np.where(np.asarray(semPts) == classNameToIDDict['chair'])[0]
-        part = pcd.select_by_index(partPtsList)
-        o3d.visualization.draw_geometries([part])
     

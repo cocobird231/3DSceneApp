@@ -48,6 +48,8 @@ def GetTemplateData(TMP_DIR, dictName, BASE_DIR, tmpType = 'pcd', normalizedObj 
                              modelName=     objDict[objName]['template']['rank1'], 
                              ModelBase_DIR= BASE_DIR, 
                              retType=       tmpType)
+        if (objDict[objName]['label'] == 'chair') : tmp.paint_uniform_color([0.4, 0.4, 0.9])
+        if (objDict[objName]['label'] == 'table') : tmp.paint_uniform_color([0.4, 0.9, 0.4])
         if (normalizedTmp):
             objDict[objName]['tmp'], objDict[objName]['tmp_s'], objDict[objName]['tmp_t'] = GetUnitModel(tmp, True, True)
         else:
